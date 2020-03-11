@@ -1,0 +1,22 @@
+### Mac ###
+.swp
+.DS_Store
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### Go ###
+
+vendor/
+.gvm_local/
+output/
+!.gitkeep
+dist
+workspace/
+
+### Others ###
+assets.go
+gen.go
