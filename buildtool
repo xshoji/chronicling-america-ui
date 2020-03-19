@@ -1,0 +1,136 @@
+#!/bin/bash
+
+function usage()
+{
+cat << _EOT_
+
+ buildtool
+-------------- author: xshoji
+
+Build tool.
+
+Usage:
+  ./$(basename "$0") --mode run [ --output /path/to/output/dir --targetOs mac ]
+
+Required:
+  -m, --mode run : Build mode. ( run | build )
+
+Optional:
+  -o, --output /path/to/output/dir : Path of output directory for "-m build".
+  -t, --targetOs mac               : Target OS. ( mac | windows ) [ default: mac ]
+
+Helper options:
+  --help, --debug
+
+_EOT_
+  [[ "${1+x}" != "" ]] && { exit "${1}"; }
+  exit 1
+}
+function printColored() { local B="\033[0;"; local C=""; case "${1}" in "red") C="31m";; "green") C="32m";; "yellow") C="33m";; "blue") C="34m";; esac; printf "%b%b\033[0m" "${B}${C}" "${2}"; }
+# [ keep-starter-parameters ] : curl -sf https://raw.githubusercontent.com/xshoji/bash-script-starter/master/ScriptStarter.sh |bash -s -  -n "buildtool" -a "xshoji" -d "Build tool." -r "mode,run,Build mode. ( run | build )" -o "output,/path/to/output/dir,Path of output directory for \"-m build\"." -o "targetOs,mac,Target OS. ( mac | windows ),mac" -s -k -p
+
+
+
+#------------------------------------------
+# Preparation
+#------------------------------------------
+set -eu
+
+# Parse parameters
+readonly ARGS=("$@")
+for ARG in "$@"
+do
+    SHIFT="true"
+    [[ "${ARG}" == "--debug" ]] && { shift 1; set -eux; SHIFT="false"; }
+    { [[ "${ARG}" == "--mode" ]] || [[ "${ARG}" == "-m" ]]; } && { shift 1; MODE="${1}"; SHIFT="false"; }
+    { [[ "${ARG}" == "--output" ]] || [[ "${ARG}" == "-o" ]]; } && { shift 1; OUTPUT="${1}"; SHIFT="false"; }
+    { [[ "${ARG}" == "--targetOs" ]] || [[ "${ARG}" == "-t" ]]; } && { shift 1; TARGET_OS="${1}"; SHIFT="false"; }
+    { [[ "${ARG}" == "--help" ]] || [[ "${ARG}" == "-h" ]]; } && { shift 1; HELP="true"; SHIFT="false"; }
+    { [[ "${SHIFT}" == "true" ]] && [[ "$#" -gt 0 ]]; } && { shift 1; }
+done
+[[ -n "${HELP+x}" ]] && { usage 0; }
+# Check required parameters
+[[ -z "${MODE+x}" ]] && { printColored yellow "[!] --mode is required.\n"; INVALID_STATE="true"; }
+# Check invalid state and display usage
+[[ -n "${INVALID_STATE+x}" ]] && { usage; }
+# Initialize optional variables
+[[ -z "${OUTPUT+x}" ]] && { OUTPUT=""; }
+[[ -z "${TARGET_OS+x}" ]] && { TARGET_OS="mac"; }
+# To readonly variables
+readonly MODE
+readonly OUTPUT
+readonly TARGET_OS
+
+
+
+
+
+
+
+#------------------------------------------
+# Main
+#------------------------------------------
+
+# Define const
+readonly PROJECT_DIR="$(cd $(dirname "${BASH_SOURCE:-$0}") && pwd)"
+readonly APP="ChroniclingAmericaUI.app"
+
+# Validation
+{ [[ "${MODE}" != "run" ]] && [[ "${MODE}" != "build" ]]; } && { printColored yellow "[!] --mode ${MODE} is not allowed.\n"; usage 1; }
+{ [[ "${MODE}" == "build" ]] && [[ "${OUTPUT}" == "" ]]; } && { printColored yellow "[!] --output is required in build mode.\n"; usage 1; }
+
+# Define Function
+function updateAssets() {
+  readonly GEN_GO="gen.go"
+  trap "{ rm -f ${GEN_GO}; }" EXIT
+  # You can also run "npm build" or webpack here, or compress assets, or
+  # generate manifests, or do other preparations for your assets.
+  cat > ${GEN_GO} << EOF
+  package main
+  import "github.com/zserge/lorca"
+  func main() {
+  	lorca.Embed("main", "assets.go", "resources")
+  }
+EOF
+  echo "[ "$(printColored green "INFO")" ] >>> update assets.go ..."
+  go run "${GEN_GO}"
+}
+
+function run() {
+  echo "[ "$(printColored green "INFO")" ] >>> start appliaction ..."
+  go run main.go assets.go
+}
+
+function buildMacOs() {
+  echo "[ "$(printColored green "INFO")" ] Build start for MacOS"
+  local DIR=${OUTPUT}
+  local BASE_DIR=${DIR}/${APP}/Contents
+  local ICON=app.icns
+
+  echo "[ "$(printColored green "INFO")" ] >>> make output directory ..."
+  mkdir -p ${BASE_DIR}/{MacOS,Resources}
+  updateAssets
+  echo "[ "$(printColored green "INFO")" ] >>> build application ..."
+  go build -o ${BASE_DIR}/MacOS/${APP} main.go assets.go
+  cat > ${BASE_DIR}/Info.plist << EOF
+  <?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  <plist version="1.0">
+  <dict>
+  	<key>CFBundleExecutable</key>
+  	<string>${APP}</string>
+  	<key>CFBundleIconFile</key>
+  	<string>${ICON}</string>
+  	<key>CFBundleIdentifier</key>
+  	<string>com.xshoji.${APP}</string>
+  </dict>
+  </plist>
+EOF
+  cp "${PROJECT_DIR}/resources/icons/${ICON}" "${BASE_DIR}/Resources/${ICON}"
+  echo "[ "$(printColored green "INFO")" ] >>> success : ${DIR}/${APP}"
+}
+
+# Execute function
+[[ "${MODE}" == "run" ]] && { updateAssets; run; exit; }
+{ [[ "${MODE}" == "build" ]] && [[ "${TARGET_OS}" == "mac" ]]; } && { buildMacOs; exit; }
+[[ "${MODE}" == "build" ]] && { printColored yellow "[!] --targetOs is only \"mac\" allowed now.\n"; usage 1;}
