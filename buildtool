@@ -71,18 +71,25 @@ readonly TARGET_OS
 # Main
 #------------------------------------------
 
-# Define const
+#-----
+# Define const values
 readonly PROJECT_DIR="$(cd $(dirname "${BASH_SOURCE:-$0}") && pwd)"
 readonly APP="ChroniclingAmericaUI.app"
 
-# Validation
+
+
+#-----
+# Validations
 { [[ "${MODE}" != "run" ]] && [[ "${MODE}" != "build" ]]; } && { printColored yellow "[!] --mode ${MODE} is not allowed.\n"; usage 1; }
 { [[ "${MODE}" == "build" ]] && [[ "${OUTPUT}" == "" ]]; } && { printColored yellow "[!] --output is required in build mode.\n"; usage 1; }
 
-# Define Function
+
+
+#-----
+# Define Functions
 function updateAssets() {
   readonly GEN_GO="gen.go"
-  trap "{ rm -f ${GEN_GO}; }" EXIT
+  trap '{ rm -f "${GEN_GO}"; }' EXIT
   # You can also run "npm build" or webpack here, or compress assets, or
   # generate manifests, or do other preparations for your assets.
   cat > ${GEN_GO} << EOF
@@ -92,25 +99,25 @@ function updateAssets() {
   	lorca.Embed("main", "assets.go", "resources")
   }
 EOF
-  echo "[ "$(printColored green "INFO")" ] >>> update assets.go ..."
+  echo "[ $(printColored green INFO) ] >>> update assets.go ..."
   go run "${GEN_GO}"
 }
 
 function run() {
-  echo "[ "$(printColored green "INFO")" ] >>> start appliaction ..."
+  echo "[ $(printColored green INFO) ] >>> start appliaction ..."
   go run main.go assets.go
 }
 
 function buildMacOs() {
-  echo "[ "$(printColored green "INFO")" ] Build start for MacOS"
+  echo "[ $(printColored green INFO) ] Build start for MacOS"
   local DIR=${OUTPUT}
   local BASE_DIR=${DIR}/${APP}/Contents
   local ICON=app.icns
 
-  echo "[ "$(printColored green "INFO")" ] >>> make output directory ..."
+  echo "[ $(printColored green INFO) ] >>> make output directory ..."
   mkdir -p ${BASE_DIR}/{MacOS,Resources}
   updateAssets
-  echo "[ "$(printColored green "INFO")" ] >>> build application ..."
+  echo "[ $(printColored green INFO) ] >>> build application ..."
   go build -o ${BASE_DIR}/MacOS/${APP} main.go assets.go
   cat > ${BASE_DIR}/Info.plist << EOF
   <?xml version="1.0" encoding="UTF-8"?>
@@ -127,9 +134,12 @@ function buildMacOs() {
   </plist>
 EOF
   cp "${PROJECT_DIR}/resources/icons/${ICON}" "${BASE_DIR}/Resources/${ICON}"
-  echo "[ "$(printColored green "INFO")" ] >>> success : ${DIR}/${APP}"
+  echo "[ $(printColored green INFO) ] >>> success : ${DIR}/${APP}"
 }
 
+
+
+#-----
 # Execute function
 [[ "${MODE}" == "run" ]] && { updateAssets; run; exit; }
 { [[ "${MODE}" == "build" ]] && [[ "${TARGET_OS}" == "mac" ]]; } && { buildMacOs; exit; }
