@@ -1,3 +1,10 @@
+/* > javascript - Stop chrome back/forward two finger swipe - Stack Overflow  */
+/* > https://stackoverflow.com/questions/15829172/stop-chrome-back-forward-two-finger-swipe*/
+/* swipeによるback/forwardを禁止する */
+body {
+  overscroll-behavior-x: none;
+}
+
 hr {
     margin-top: 1rem;
     margin-bottom: 1rem;

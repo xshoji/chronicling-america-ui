@@ -24,7 +24,12 @@ func main() {
 	// 2. create lorca
 	ui, _ := lorca.New("", "", 1200, 840)
 	deferFunc := func() {
-		ui.Close()
+		e := ui.Close()
+		if e != nil {
+			log.Error("Cannot close ui object.")
+			log.Error(e)
+			os.Exit(1)
+		}
 		log.Info("====== Exit Application ======")
 	}
 	// Make kill signal channel
@@ -50,6 +55,7 @@ func main() {
 	go http.Serve(ln, http.FileServer(FS))
 	ui.Load(fmt.Sprintf("http://%s", ln.Addr()))
 	ui.Bind("Search", dao.Search)
+	ui.Bind("GetKeysSearchResponse", dao.GetKeysSearchResponse)
 	log.Info("====== Start Application ======")
 	<-ui.Done()
 }

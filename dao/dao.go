@@ -45,7 +45,7 @@ func Search(terms string, page string) []map[string]interface{} {
 
 func GetKeysSearchResponse() []string {
 	return []string{
-		"essay.0",
+		//		"essay.0",
 		"place_of_publication",
 		"start_year",
 		"publisher",
@@ -61,7 +61,7 @@ func GetKeysSearchResponse() []string {
 		"holding_type.0",
 		"end_year",
 		"alt_title.0",
-		"note.0",
+		//		"note.0",
 		"lccn",
 		"state.0",
 		"place.0",

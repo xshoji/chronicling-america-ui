@@ -1,3 +1,7 @@
+window.addEventListener("popstate", function (e) {
+    history.pushState(null, null, null);
+    return;
+});
 
 document.querySelector("#search-button").addEventListener("click", renderResults);
 
@@ -6,11 +10,41 @@ async function renderResults() {
     let terms = document.querySelector("#terms").value;
     let page = document.querySelector("#page").value;
     let responseMapList = await Search(terms, page); // call go function
+    let responseKeys = await GetKeysSearchResponse(); // call go function
     console.log("Search results:");
     console.log(responseMapList);
+    renderTable(responseKeys, responseMapList)
   } catch (err) {
     alert("Error:" + err);
   }
+}
+
+
+function renderTable(responseKeys, results) {
+  let tableElement = createCustomElement("table", null, (e) => {
+    e.classList.add("table");
+    e.classList.add("text-nowrap");
+  });
+  let tr = createCustomElement("tr");
+  // Table header
+  responseKeys.forEach((key) => tr.appendChild(createCustomElement("th", key)));
+  let thead = createCustomElement("thead", null, (e) => {
+    e.appendChild(tr);
+    e.classList.add("thead-light");
+  });
+  tableElement.appendChild(thead);
+
+  // Table body
+  let tbody = createCustomElement("tbody");
+  results.forEach((result) => {
+    let tr = createCustomElement("tr");
+    responseKeys.forEach((key) => tr.appendChild(createCustomElement("td", result[key])));
+    tbody.appendChild(tr);
+  });
+  tableElement.appendChild(tbody);
+  
+  document.querySelector("#result-container").innerHTML = '';
+  document.querySelector("#result-container").appendChild(tableElement);
 }
 
 // var formElement = document.getElementById("form-container");
